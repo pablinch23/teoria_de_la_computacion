@@ -1,0 +1,55 @@
+import matplotlib.pyplot as plt     # Importa matplotlib para graficar el grafo
+import networkx as nx               # Importa NetworkX para crear y manejar grafos
+import csv                          # Importa csv para leer archivos .csv
+import numpy as np                 # Importa numpy para usar arreglos (aunque no se usa mucho aquí)
+
+# Esta función lee rutas desde un archivo CSV y las convierte a una matriz de NumPy
+def leer_csv_a_matriz(archivo_csv):
+    rutas = []                                      # Lista vacía para guardar las rutas
+    with open(archivo_csv, 'r') as file:            # Abre el archivo CSV
+        reader = csv.reader(file)
+        for row in reader:
+            # Convierte la fila (cadena) a lista de enteros, quitando corchetes y separando por comas
+            ruta = list(map(int, row[0].strip('[]').split(',')))
+            rutas.append(ruta)                      # Agrega la ruta convertida
+    return np.array(rutas, dtype=object)            # Convierte la lista en un array de objetos
+
+def graficarRutas(archivoRutas):
+    G = nx.Graph()                                  # Crea un grafo vacío
+
+    matriz_rutas = leer_csv_a_matriz(archivoRutas)  # Convierte el archivo CSV a una matriz
+    if len(matriz_rutas) == 0:                      # Si no hay rutas, avisa y termina
+        print("No se encontraron rutas en el archivo", archivoRutas)
+        return
+
+    n_columnas = len(matriz_rutas[0])               # Número de pasos (columnas) en cada ruta
+
+    pos = {}  # Diccionario para guardar las posiciones gráficas de cada nodo
+    for col in range(matriz_rutas.shape[1]):        # Recorre columnas (pasos de las rutas)
+        for fila in range(matriz_rutas.shape[0]):   # Recorre filas (cada ruta)
+            nodo_actual = matriz_rutas[fila][col]   # Nodo en la posición actual
+            if nodo_actual != 0:                    # Si el valor es válido
+                if (col, nodo_actual) not in G:     # Si el nodo no está en el grafo
+                    G.add_node((col, nodo_actual))  # Agrega nodo
+                    pos[(col, nodo_actual)] = (col, -nodo_actual)  # Asigna posición en x,y
+
+                if col < matriz_rutas.shape[1] - 1:     # Si no estamos en la última columna
+                    nodo_siguiente = matriz_rutas[fila][col + 1]  # Nodo del siguiente paso
+                    if nodo_siguiente != 0:
+                        if (col + 1, nodo_siguiente) not in G:     # Si el siguiente nodo no está aún
+                            G.add_node((col + 1, nodo_siguiente))  # Lo agregamos
+                            pos[(col + 1, nodo_siguiente)] = (col + 1, -nodo_siguiente)
+                        G.add_edge((col, nodo_actual), (col + 1, nodo_siguiente))  # Conectamos nodos
+
+    plt.figure(figsize=(7, 5))                                # Crea una figura de tamaño moderado
+    nx.draw(                                                  # Dibuja el grafo con las posiciones
+        G, pos,
+        with_labels=True,                                     # Muestra etiquetas de nodos
+        node_size=500,                                        # Tamaño de los nodos
+        node_color="pink",                                    # Color rosa para los nodos
+        font_size=8,
+        font_color="black"
+    )
+    plt.title("Conexiones entre nodos en orden descendente según su valor")  # Título
+    plt.axis('off')                                           # Oculta ejes
+    plt.show()                                                # Muestra la gráfica
